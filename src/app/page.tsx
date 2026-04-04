@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Festival, Track, ArtistResult } from "@/types";
+import { Festival, Track, ArtistResult, ArtistPreset, PlaylistSize } from "@/types";
 import SearchBar from "@/components/SearchBar";
 import LineupEditor from "@/components/LineupEditor";
 import ManualInput from "@/components/ManualInput";
@@ -29,6 +29,8 @@ interface PersistedState {
   notFoundArtists: string[];
   searchQuery: string;
   editedArtists: string[] | null;
+  artistPreset?: ArtistPreset;
+  playlistSize?: PlaylistSize;
 }
 
 function saveToSession(data: PersistedState) {
@@ -70,6 +72,9 @@ export default function Home() {
   // Track edited artists so going back preserves edits
   const [editedArtists, setEditedArtists] = useState<string[] | null>(null);
   const [restored, setRestored] = useState(false);
+  // Persist playlist customization choices
+  const [savedArtistPreset, setSavedArtistPreset] = useState<ArtistPreset | undefined>();
+  const [savedPlaylistSize, setSavedPlaylistSize] = useState<PlaylistSize | undefined>();
 
   // Restore state from sessionStorage (after OAuth redirect)
   useEffect(() => {
@@ -83,6 +88,8 @@ export default function Home() {
       setNotFoundArtists(saved.notFoundArtists);
       setSearchQuery(saved.searchQuery);
       setEditedArtists(saved.editedArtists);
+      setSavedArtistPreset(saved.artistPreset);
+      setSavedPlaylistSize(saved.playlistSize);
     }
     setRestored(true);
   }, []);
@@ -99,9 +106,11 @@ export default function Home() {
         notFoundArtists,
         searchQuery,
         editedArtists,
+        artistPreset: savedArtistPreset,
+        playlistSize: savedPlaylistSize,
       });
     }
-  }, [state, festival, tracks, artistResults, totalDurationMs, notFoundArtists, searchQuery, editedArtists]);
+  }, [state, festival, tracks, artistResults, totalDurationMs, notFoundArtists, searchQuery, editedArtists, savedArtistPreset, savedPlaylistSize]);
 
   useEffect(() => {
     persistState();
@@ -121,6 +130,8 @@ export default function Home() {
       if (data.found && data.festival) {
         setFestival(data.festival);
         setEditedArtists(null); // Reset edits for new festival
+        setSavedArtistPreset(undefined);
+        setSavedPlaylistSize(undefined);
         setState("lineup");
       } else {
         // Not found — go to manual entry
@@ -145,9 +156,10 @@ export default function Home() {
   };
 
   // Step 3: Generate playlist from lineup
-  const handleGenerate = async (artists: string[]) => {
-    // Save the edited artist list so going back preserves it
+  const handleGenerate = async (artists: string[], playlistSize: PlaylistSize) => {
+    // Save the edited artist list and options so going back preserves them
     setEditedArtists(artists);
+    setSavedPlaylistSize(playlistSize);
     setState("loading-tracks");
     setProgress({ done: 0, total: artists.length });
 
@@ -155,7 +167,10 @@ export default function Home() {
       const res = await fetch("/api/tracks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ artists }),
+        body: JSON.stringify({
+          artists,
+          playlistSize: playlistSize === "all" ? null : playlistSize,
+        }),
       });
       const data = await res.json();
 
@@ -188,6 +203,8 @@ export default function Home() {
     setSearchQuery("");
     setErrorMsg(null);
     setEditedArtists(null);
+    setSavedArtistPreset(undefined);
+    setSavedPlaylistSize(undefined);
     clearSession();
   };
 
@@ -245,6 +262,8 @@ export default function Home() {
           <LineupEditor
             festival={festival}
             initialArtists={editedArtists}
+            initialArtistPreset={savedArtistPreset}
+            initialPlaylistSize={savedPlaylistSize}
             onGenerate={handleGenerate}
             onBack={resetToSearch}
             isLoading={false}

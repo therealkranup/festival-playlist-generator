@@ -75,10 +75,12 @@ export async function getTopTracks(
   const data = await spotifyFetch(
     `/artists/${artistId}/top-tracks?market=${market}`
   );
-  return (data.tracks || []).slice(0, 5).map(
+  // Fetch all available top tracks (up to 10 from Spotify API)
+  return (data.tracks || []).map(
     (t: {
       id: string;
       name: string;
+      popularity: number;
       artists: { name: string }[];
       album: { name: string; images: { url: string }[] };
       preview_url: string | null;
@@ -93,6 +95,7 @@ export async function getTopTracks(
       previewUrl: t.preview_url,
       spotifyUri: t.uri,
       durationMs: t.duration_ms,
+      popularity: t.popularity ?? 0,
     })
   );
 }

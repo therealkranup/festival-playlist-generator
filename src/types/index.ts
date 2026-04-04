@@ -16,7 +16,11 @@ export interface Track {
   previewUrl: string | null;
   spotifyUri: string;
   durationMs: number;
+  popularity: number;
 }
+
+export type ArtistPreset = 5 | 10 | "all";
+export type PlaylistSize = 20 | 40 | "all";
 
 export interface ArtistResult {
   name: string;

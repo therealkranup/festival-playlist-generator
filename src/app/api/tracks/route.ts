@@ -5,7 +5,7 @@ export const maxDuration = 60; // Allow up to 60s for large lineups
 
 export async function POST(req: NextRequest) {
   try {
-    const { artists } = await req.json();
+    const { artists, playlistSize } = await req.json();
 
     if (!Array.isArray(artists) || artists.length === 0) {
       return NextResponse.json(
@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log(`Fetching tracks for ${artists.length} artists`);
+    console.log(`Fetching tracks for ${artists.length} artists, playlistSize: ${playlistSize}`);
 
     // Check Spotify credentials
     if (!process.env.SPOTIFY_CLIENT_ID || !process.env.SPOTIFY_CLIENT_SECRET) {
@@ -36,14 +36,21 @@ export async function POST(req: NextRequest) {
       return true;
     });
 
-    const totalDurationMs = uniqueTracks.reduce((sum, t) => sum + t.durationMs, 0);
+    // Sort by popularity (highest first) for curated playlists
+    uniqueTracks.sort((a, b) => b.popularity - a.popularity);
+
+    // Apply playlist size limit
+    const limit = typeof playlistSize === "number" ? playlistSize : undefined;
+    const finalTracks = limit ? uniqueTracks.slice(0, limit) : uniqueTracks;
+
+    const totalDurationMs = finalTracks.reduce((sum, t) => sum + t.durationMs, 0);
     const notFound = results.filter((r) => !r.found).map((r) => r.name);
 
-    console.log(`Found ${uniqueTracks.length} tracks, ${notFound.length} artists not found`);
+    console.log(`Found ${finalTracks.length} tracks (from ${uniqueTracks.length} total), ${notFound.length} artists not found`);
 
     return NextResponse.json({
       artistResults: results,
-      tracks: uniqueTracks,
+      tracks: finalTracks,
       totalDurationMs,
       notFound,
     });
