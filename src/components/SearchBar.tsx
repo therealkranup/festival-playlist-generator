@@ -25,8 +25,8 @@ export default function SearchBar({ onSearch, isLoading }: SearchBarProps) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="e.g. Copenhell 2026, Roskilde Festival..."
-          className="w-full px-6 py-4 text-lg bg-white/5 border border-white/10 rounded-2xl
-                     text-white placeholder-white/40 outline-none
+          className="w-full px-4 sm:px-6 py-3.5 sm:py-4 text-base sm:text-lg bg-white/5 border border-white/10 rounded-2xl
+                     text-white placeholder-white/40 outline-none pr-24 sm:pr-32
                      focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/20
                      transition-all duration-300"
           disabled={isLoading}
@@ -34,9 +34,9 @@ export default function SearchBar({ onSearch, isLoading }: SearchBarProps) {
         <button
           type="submit"
           disabled={!query.trim() || isLoading}
-          className="absolute right-2 top-1/2 -translate-y-1/2 px-6 py-2.5
+          className="absolute right-2 top-1/2 -translate-y-1/2 px-4 sm:px-6 py-2 sm:py-2.5
                      bg-orange-500 hover:bg-orange-400 disabled:bg-white/10
-                     text-white font-semibold rounded-xl
+                     text-white text-sm sm:text-base font-semibold rounded-xl
                      transition-all duration-200 disabled:cursor-not-allowed"
         >
           {isLoading ? (

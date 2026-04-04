@@ -26,23 +26,28 @@ export default function Home() {
   const [notFoundArtists, setNotFoundArtists] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [progress, setProgress] = useState({ done: 0, total: 0 });
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Step 1: Search for festival lineup
   const handleSearch = async (query: string) => {
     setSearchQuery(query);
     setState("loading-lineup");
+    setErrorMsg(null);
 
     try {
       const res = await fetch(`/api/lineup?q=${encodeURIComponent(query)}`);
+      if (!res.ok) throw new Error("Server error");
       const data = await res.json();
 
       if (data.found && data.festival) {
         setFestival(data.festival);
         setState("lineup");
       } else {
+        // Not found — go to manual entry
         setState("manual");
       }
     } catch {
+      setErrorMsg("Couldn\u2019t look up that festival. You can enter artists manually instead.");
       setState("manual");
     }
   };
@@ -78,7 +83,7 @@ export default function Home() {
       setProgress({ done: artists.length, total: artists.length });
       setState("playlist");
     } catch {
-      // On error, go back to lineup editor
+      setErrorMsg("Something went wrong while fetching tracks. Please try again.");
       setState("lineup");
     }
   };
@@ -90,6 +95,7 @@ export default function Home() {
     setArtistResults([]);
     setNotFoundArtists([]);
     setSearchQuery("");
+    setErrorMsg(null);
   };
 
   return (
@@ -109,18 +115,20 @@ export default function Home() {
         {/* Search state */}
         {state === "search" && (
           <div className="w-full max-w-2xl text-center">
-            <h1 className="text-5xl sm:text-6xl font-bold text-white mb-3 tracking-tight">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-3 tracking-tight animate-fade-in-up">
               Which festival are
               <br />
               <span className="bg-gradient-to-r from-orange-400 to-pink-400 bg-clip-text text-transparent">
                 you going to?
               </span>
             </h1>
-            <p className="text-white/50 text-lg mb-10">
+            <p className="text-white/50 text-lg mb-10 animate-fade-in-up delay-100">
               We&apos;ll build you a playlist from the full lineup.
             </p>
-            <SearchBar onSearch={handleSearch} isLoading={false} />
-            <p className="text-white/25 text-xs mt-6">
+            <div className="animate-fade-in-up delay-200">
+              <SearchBar onSearch={handleSearch} isLoading={false} />
+            </div>
+            <p className="text-white/25 text-xs mt-6 animate-fade-in delay-400">
               Try: Copenhell 2025, Roskilde Festival, Wacken Open Air
             </p>
           </div>
@@ -146,6 +154,24 @@ export default function Home() {
           />
         )}
 
+        {/* Error banner */}
+        {errorMsg && (state === "manual" || state === "lineup") && (
+          <div className="w-full max-w-3xl mx-auto mb-4 animate-fade-in">
+            <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 flex items-start gap-3">
+              <svg className="w-5 h-5 text-red-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+              <p className="text-red-300/80 text-sm">{errorMsg}</p>
+              <button onClick={() => setErrorMsg(null)} className="text-red-400/50 hover:text-red-400 ml-auto shrink-0">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Manual input */}
         {state === "manual" && (
           <ManualInput
@@ -165,7 +191,7 @@ export default function Home() {
 
         {/* Playlist preview */}
         {state === "playlist" && festival && (
-          <div className="w-full">
+          <div className="w-full animate-fade-in-up">
             {/* Festival name header */}
             <div className="text-center mb-8">
               <button
@@ -196,6 +222,11 @@ export default function Home() {
               festivalName={festival.name}
               festivalYear={festival.year}
               tracks={tracks}
+              location={festival.location}
+              dates={festival.dates}
+              artistCount={artistResults.filter((a) => a.found).length}
+              totalDurationMs={totalDurationMs}
+              notFoundArtists={notFoundArtists}
             />
           </div>
         )}

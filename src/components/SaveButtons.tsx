@@ -8,6 +8,11 @@ interface SaveButtonsProps {
   festivalName: string;
   festivalYear: number;
   tracks: Track[];
+  location?: string;
+  dates?: string;
+  artistCount?: number;
+  totalDurationMs?: number;
+  notFoundArtists?: string[];
 }
 
 type SaveState = "idle" | "saving" | "saved" | "error";
@@ -16,6 +21,11 @@ export default function SaveButtons({
   festivalName,
   festivalYear,
   tracks,
+  location,
+  dates,
+  artistCount,
+  totalDurationMs,
+  notFoundArtists,
 }: SaveButtonsProps) {
   const { data: session } = useSession();
   const [spotifyState, setSpotifyState] = useState<SaveState>("idle");
@@ -87,7 +97,35 @@ export default function SaveButtons({
   };
 
   const shareLink = () => {
-    navigator.clipboard.writeText(window.location.href);
+    try {
+      // Encode minimal playlist data for sharing
+      const shareData = {
+        festivalName,
+        festivalYear,
+        location,
+        dates,
+        tracks: tracks.slice(0, 50).map((t) => ({
+          id: t.id,
+          name: t.name,
+          artist: t.artist,
+          albumName: t.albumName,
+          albumArt: t.albumArt,
+          previewUrl: t.previewUrl,
+          spotifyUri: t.spotifyUri,
+          durationMs: t.durationMs,
+        })),
+        artistCount: artistCount || 0,
+        totalDurationMs: totalDurationMs || 0,
+        notFoundArtists: notFoundArtists || [],
+      };
+      const encoded = btoa(JSON.stringify(shareData));
+      const slug = festivalName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+      const shareUrl = `${window.location.origin}/playlist/${slug}?d=${encoded}`;
+      navigator.clipboard.writeText(shareUrl);
+    } catch {
+      // Fallback: just copy current page URL
+      navigator.clipboard.writeText(window.location.href);
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
