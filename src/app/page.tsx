@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Festival, Track, ArtistResult } from "@/types";
 import SearchBar from "@/components/SearchBar";
 import LineupEditor from "@/components/LineupEditor";
@@ -17,6 +17,46 @@ type AppState =
   | "loading-tracks"
   | "playlist";
 
+// Keys for sessionStorage persistence
+const STORAGE_KEY = "festifygen_state";
+
+interface PersistedState {
+  appState: AppState;
+  festival: Festival | null;
+  tracks: Track[];
+  artistResults: ArtistResult[];
+  totalDurationMs: number;
+  notFoundArtists: string[];
+  searchQuery: string;
+  editedArtists: string[] | null;
+}
+
+function saveToSession(data: PersistedState) {
+  try {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch {
+    // sessionStorage might be full or unavailable
+  }
+}
+
+function loadFromSession(): PersistedState | null {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function clearSession() {
+  try {
+    sessionStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // ignore
+  }
+}
+
 export default function Home() {
   const [state, setState] = useState<AppState>("search");
   const [festival, setFestival] = useState<Festival | null>(null);
@@ -27,6 +67,45 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [progress, setProgress] = useState({ done: 0, total: 0 });
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  // Track edited artists so going back preserves edits
+  const [editedArtists, setEditedArtists] = useState<string[] | null>(null);
+  const [restored, setRestored] = useState(false);
+
+  // Restore state from sessionStorage (after OAuth redirect)
+  useEffect(() => {
+    const saved = loadFromSession();
+    if (saved && saved.appState === "playlist" && saved.tracks.length > 0) {
+      setState(saved.appState);
+      setFestival(saved.festival);
+      setTracks(saved.tracks);
+      setArtistResults(saved.artistResults);
+      setTotalDurationMs(saved.totalDurationMs);
+      setNotFoundArtists(saved.notFoundArtists);
+      setSearchQuery(saved.searchQuery);
+      setEditedArtists(saved.editedArtists);
+    }
+    setRestored(true);
+  }, []);
+
+  // Persist state whenever we reach the playlist view
+  const persistState = useCallback(() => {
+    if (state === "playlist" && festival && tracks.length > 0) {
+      saveToSession({
+        appState: state,
+        festival,
+        tracks,
+        artistResults,
+        totalDurationMs,
+        notFoundArtists,
+        searchQuery,
+        editedArtists,
+      });
+    }
+  }, [state, festival, tracks, artistResults, totalDurationMs, notFoundArtists, searchQuery, editedArtists]);
+
+  useEffect(() => {
+    persistState();
+  }, [persistState]);
 
   // Step 1: Search for festival lineup
   const handleSearch = async (query: string) => {
@@ -41,6 +120,7 @@ export default function Home() {
 
       if (data.found && data.festival) {
         setFestival(data.festival);
+        setEditedArtists(null); // Reset edits for new festival
         setState("lineup");
       } else {
         // Not found — go to manual entry
@@ -60,11 +140,14 @@ export default function Home() {
       artists,
     };
     setFestival(manualFestival);
+    setEditedArtists(artists);
     setState("lineup");
   };
 
   // Step 3: Generate playlist from lineup
   const handleGenerate = async (artists: string[]) => {
+    // Save the edited artist list so going back preserves it
+    setEditedArtists(artists);
     setState("loading-tracks");
     setProgress({ done: 0, total: artists.length });
 
@@ -76,14 +159,22 @@ export default function Home() {
       });
       const data = await res.json();
 
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
       setTracks(data.tracks || []);
       setArtistResults(data.artistResults || []);
       setTotalDurationMs(data.totalDurationMs || 0);
       setNotFoundArtists(data.notFound || []);
       setProgress({ done: artists.length, total: artists.length });
       setState("playlist");
-    } catch {
-      setErrorMsg("Something went wrong while fetching tracks. Please try again.");
+    } catch (err) {
+      setErrorMsg(
+        err instanceof Error
+          ? `Failed to fetch tracks: ${err.message}`
+          : "Something went wrong while fetching tracks. Please try again."
+      );
       setState("lineup");
     }
   };
@@ -96,7 +187,12 @@ export default function Home() {
     setNotFoundArtists([]);
     setSearchQuery("");
     setErrorMsg(null);
+    setEditedArtists(null);
+    clearSession();
   };
+
+  // Don't render until we've checked sessionStorage
+  if (!restored) return null;
 
   return (
     <main className="min-h-screen flex flex-col">
@@ -148,6 +244,7 @@ export default function Home() {
         {state === "lineup" && festival && (
           <LineupEditor
             festival={festival}
+            initialArtists={editedArtists}
             onGenerate={handleGenerate}
             onBack={resetToSearch}
             isLoading={false}

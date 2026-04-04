@@ -22,7 +22,11 @@ async function getClientToken(): Promise<string> {
     body: "grant_type=client_credentials",
   });
 
-  if (!res.ok) throw new Error("Failed to get Spotify client token");
+  if (!res.ok) {
+    const errText = await res.text();
+    console.error(`Spotify token error: ${res.status} - ${errText}`);
+    throw new Error(`Failed to get Spotify client token: ${res.status}`);
+  }
   const data = await res.json();
   clientToken = data.access_token;
   clientTokenExpiry = Date.now() + (data.expires_in - 60) * 1000;
@@ -39,7 +43,11 @@ async function spotifyFetch(path: string, token?: string) {
     await new Promise((r) => setTimeout(r, retryAfter * 1000));
     return spotifyFetch(path, token);
   }
-  if (!res.ok) throw new Error(`Spotify API error: ${res.status} on ${path}`);
+  if (!res.ok) {
+    const errText = await res.text();
+    console.error(`Spotify API error: ${res.status} on ${path} - ${errText}`);
+    throw new Error(`Spotify API error: ${res.status} on ${path}`);
+  }
   return res.json();
 }
 

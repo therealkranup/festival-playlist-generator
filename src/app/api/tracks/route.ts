@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { batchGetArtistTracks } from "@/lib/spotify";
 
+export const maxDuration = 60; // Allow up to 60s for large lineups
+
 export async function POST(req: NextRequest) {
   try {
     const { artists } = await req.json();
@@ -9,6 +11,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: "Provide an array of artist names" },
         { status: 400 }
+      );
+    }
+
+    console.log(`Fetching tracks for ${artists.length} artists`);
+
+    // Check Spotify credentials
+    if (!process.env.SPOTIFY_CLIENT_ID || !process.env.SPOTIFY_CLIENT_SECRET) {
+      console.error("Spotify credentials not set");
+      return NextResponse.json(
+        { error: "Spotify credentials not configured" },
+        { status: 500 }
       );
     }
 
@@ -26,6 +39,8 @@ export async function POST(req: NextRequest) {
     const totalDurationMs = uniqueTracks.reduce((sum, t) => sum + t.durationMs, 0);
     const notFound = results.filter((r) => !r.found).map((r) => r.name);
 
+    console.log(`Found ${uniqueTracks.length} tracks, ${notFound.length} artists not found`);
+
     return NextResponse.json({
       artistResults: results,
       tracks: uniqueTracks,
@@ -34,6 +49,9 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     console.error("Tracks API error:", err);
-    return NextResponse.json({ error: "Failed to fetch tracks" }, { status: 500 });
+    return NextResponse.json(
+      { error: `Failed to fetch tracks: ${err instanceof Error ? err.message : "unknown"}` },
+      { status: 500 }
+    );
   }
 }

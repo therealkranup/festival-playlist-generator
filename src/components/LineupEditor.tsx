@@ -5,6 +5,7 @@ import { Festival } from "@/types";
 
 interface LineupEditorProps {
   festival: Festival;
+  initialArtists?: string[] | null;
   onGenerate: (artists: string[]) => void;
   onBack: () => void;
   isLoading: boolean;
@@ -12,11 +13,13 @@ interface LineupEditorProps {
 
 export default function LineupEditor({
   festival,
+  initialArtists,
   onGenerate,
   onBack,
   isLoading,
 }: LineupEditorProps) {
-  const [artists, setArtists] = useState<string[]>(festival.artists);
+  // Use initialArtists if provided (preserves edits), otherwise fall back to festival.artists
+  const [artists, setArtists] = useState<string[]>(initialArtists || festival.artists);
   const [newArtist, setNewArtist] = useState("");
 
   const removeArtist = (index: number) => {

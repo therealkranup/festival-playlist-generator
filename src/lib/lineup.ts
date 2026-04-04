@@ -1,6 +1,6 @@
 import { Festival } from "@/types";
 
-// Use Claude API to parse festival lineups from web search results
+// Use Claude API with web search to find festival lineups
 export async function fetchLineup(
   query: string
 ): Promise<Festival | null> {
@@ -10,15 +10,16 @@ export async function fetchLineup(
     return null;
   }
 
-  // Step 1: Ask Claude to find and parse the lineup
-  const prompt = `Find the music festival lineup for: "${query}"
+  const prompt = `Find the complete music festival lineup for: "${query}"
 
-Return ONLY a JSON object (no markdown, no explanation) with this exact structure:
+Use web search to find the most current and accurate lineup information.
+
+After searching, return ONLY a JSON object (no markdown, no explanation, no code fences) with this exact structure:
 {
   "name": "Festival Name",
   "year": 2026,
   "location": "City, Country",
-  "dates": "June 17-20" or null if unknown,
+  "dates": "June 17-20",
   "artists": ["Artist 1", "Artist 2", "Artist 3"]
 }
 
@@ -35,26 +36,57 @@ Important:
         "Content-Type": "application/json",
         "x-api-key": apiKey,
         "anthropic-version": "2023-06-01",
+        "anthropic-beta": "web-search-2025-03-05",
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 4096,
+        max_tokens: 16000,
+        tools: [
+          {
+            type: "web_search_20250305",
+            name: "web_search",
+            max_uses: 5,
+          },
+        ],
         messages: [{ role: "user", content: prompt }],
       }),
     });
 
     if (!res.ok) {
-      console.error(`Claude API error: ${res.status}`);
+      const errText = await res.text();
+      console.error(`Claude API error: ${res.status} - ${errText}`);
       return null;
     }
 
     const data = await res.json();
-    const text = data.content?.[0]?.text?.trim();
+
+    // With web search, the response has multiple content blocks.
+    // Find the last text block which should contain the JSON result.
+    const textBlocks = (data.content || []).filter(
+      (block: { type: string }) => block.type === "text"
+    );
+    const text = textBlocks.length > 0
+      ? textBlocks[textBlocks.length - 1].text?.trim()
+      : null;
+
+    console.log("Claude lineup response:", text?.substring(0, 300));
 
     if (!text || text === "null") return null;
 
+    // Strip markdown code fences if present
+    let jsonStr = text;
+    if (jsonStr.startsWith("```")) {
+      jsonStr = jsonStr.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
+    }
+
+    // Try to extract JSON if there's extra text around it
+    const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      jsonStr = jsonMatch[0];
+    }
+
     // Parse the JSON response
-    const parsed = JSON.parse(text);
+    const parsed = JSON.parse(jsonStr);
     if (!parsed || !Array.isArray(parsed.artists) || parsed.artists.length === 0) {
       return null;
     }
