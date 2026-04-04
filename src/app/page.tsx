@@ -170,6 +170,8 @@ export default function Home() {
         body: JSON.stringify({
           artists,
           playlistSize: playlistSize === "all" ? null : playlistSize,
+          festivalName: festival?.name,
+          festivalYear: festival?.year,
         }),
       });
       const data = await res.json();
