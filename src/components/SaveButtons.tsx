@@ -213,30 +213,32 @@ export default function SaveButtons({
           </button>
         </div>
 
-        {/* One-click Spotify import via TuneMyMusic */}
+        {/* One-click import via TuneMyMusic (Spotify + YouTube) */}
         <button
           onClick={importToSpotify}
-          className="w-full py-2.5 bg-[#1DB954]/10 hover:bg-[#1DB954]/20 border border-[#1DB954]/30
-                     text-[#1DB954] text-sm rounded-xl transition-colors flex items-center justify-center gap-2"
+          className="w-full py-2.5 bg-gradient-to-r from-[#1DB954]/10 to-[#FF0000]/10 hover:from-[#1DB954]/20 hover:to-[#FF0000]/20
+                     border border-white/10 text-white/80 text-sm rounded-xl transition-all flex items-center justify-center gap-2"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
               d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
           </svg>
-          Import to Spotify via TuneMyMusic (free)
+          Import to <span className="text-[#1DB954] font-semibold">Spotify</span>&nbsp;or&nbsp;<span className="text-[#FF0000] font-semibold">YouTube</span>&nbsp;via TuneMyMusic (free)
         </button>
 
         {/* Inline hint after clicking import */}
         {showImportHint && (
-          <div className="bg-[#1DB954]/5 border border-[#1DB954]/20 rounded-xl p-4 space-y-2 animate-in fade-in">
+          <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-2">
             <div className="flex items-center gap-2 text-[#1DB954] text-sm font-medium">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
               {tracks.length} tracks copied! TuneMyMusic should be open in a new tab.
             </div>
-            <div className="text-white/50 text-xs space-y-1 pl-6">
-              <p>On TuneMyMusic: pick <strong className="text-white/70">&quot;Any text&quot;</strong> as source → <strong className="text-white/70">paste</strong> (Ctrl+V) → choose <strong className="text-white/70">Spotify</strong> → <strong className="text-white/70">Start Moving</strong></p>
+            <div className="text-white/50 text-xs space-y-1.5 pl-6">
+              <p><strong className="text-white/70">1.</strong> Pick <strong className="text-white/70">&quot;Any text&quot;</strong> as your source</p>
+              <p><strong className="text-white/70">2.</strong> Paste your tracks (<strong className="text-white/70">Ctrl+V</strong> or <strong className="text-white/70">Cmd+V</strong>)</p>
+              <p><strong className="text-white/70">3.</strong> Choose <span className="text-[#1DB954] font-medium">Spotify</span> or <span className="text-[#FF0000] font-medium">YouTube</span> as destination → <strong className="text-white/70">Start Moving</strong></p>
             </div>
             <button
               onClick={() => setShowImportHint(false)}
@@ -320,7 +322,7 @@ export default function SaveButtons({
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                 </svg>
-                Import to Spotify anyway (free, 30 sec)
+                Import via TuneMyMusic (free, 30 sec)
               </button>
               <button
                 onClick={() => {
