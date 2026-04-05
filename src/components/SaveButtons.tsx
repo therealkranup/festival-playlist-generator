@@ -37,6 +37,7 @@ export default function SaveButtons({
   const [tracksCopied, setTracksCopied] = useState(false);
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const [showSpotifyModal, setShowSpotifyModal] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
 
   const playlistName = `${festivalName} ${festivalYear} — Lineup Playlist`;
 
@@ -127,6 +128,33 @@ export default function SaveButtons({
     navigator.clipboard.writeText(header + trackList);
     setTracksCopied(true);
     setTimeout(() => setTracksCopied(false), 2500);
+  };
+
+  const exportAsCSV = () => {
+    const header = "Track Name,Artist,Album,Spotify URI";
+    const rows = tracks.map(
+      (t) =>
+        `"${t.name.replace(/"/g, '""')}","${t.artist.replace(/"/g, '""')}","${(t.albumName || "").replace(/"/g, '""')}","${t.spotifyUri || ""}"`
+    );
+    const csv = [header, ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${festivalName.replace(/[^a-zA-Z0-9]/g, "_")}_${festivalYear}_playlist.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportSpotifyURIs = () => {
+    const uris = tracks.filter((t) => t.spotifyUri).map((t) => t.spotifyUri).join("\n");
+    const blob = new Blob([uris], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${festivalName.replace(/[^a-zA-Z0-9]/g, "_")}_${festivalYear}_spotify_uris.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const shareLink = () => {
@@ -223,6 +251,45 @@ export default function SaveButtons({
           {tracksCopied ? "Copied all tracks!" : `Copy ${tracks.length} tracks to clipboard`}
         </button>
 
+        {/* Export for Spotify (manual import) */}
+        <div className="relative">
+          <button
+            onClick={() => setShowExportMenu(!showExportMenu)}
+            className="w-full py-2.5 bg-white/5 hover:bg-white/10 border border-white/10
+                       text-white/70 text-sm rounded-xl transition-colors flex items-center justify-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Export playlist file (import to Spotify yourself)
+          </button>
+          {showExportMenu && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-gray-800 border border-white/10 rounded-xl overflow-hidden shadow-xl z-10">
+              <button
+                onClick={() => { exportAsCSV(); setShowExportMenu(false); }}
+                className="w-full px-4 py-3 text-left text-sm text-white/70 hover:bg-white/10 transition-colors flex items-center gap-3"
+              >
+                <span className="text-green-400 text-lg">📄</span>
+                <div>
+                  <p className="text-white/90 font-medium">Download CSV</p>
+                  <p className="text-white/40 text-xs">Upload to TuneMyMusic.com or Soundiiz.com to import into Spotify</p>
+                </div>
+              </button>
+              <button
+                onClick={() => { exportSpotifyURIs(); setShowExportMenu(false); }}
+                className="w-full px-4 py-3 text-left text-sm text-white/70 hover:bg-white/10 transition-colors border-t border-white/5 flex items-center gap-3"
+              >
+                <span className="text-purple-400 text-lg">🔗</span>
+                <div>
+                  <p className="text-white/90 font-medium">Download Spotify URIs</p>
+                  <p className="text-white/40 text-xs">Text file with spotify:track:... URIs — paste into some import tools</p>
+                </div>
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* Error detail */}
         {errorDetail && (
           <p className="text-red-400/80 text-sm text-center">{errorDetail}</p>
@@ -294,7 +361,7 @@ export default function SaveButtons({
                 </li>
                 <li className="flex gap-2">
                   <span className="text-orange-400">✓</span>
-                  <span><strong className="text-white/80">Copy tracks to clipboard</strong> — paste into Spotify search to add manually</span>
+                  <span><strong className="text-white/80">Export &amp; import yourself</strong> — download CSV, upload to <a href="https://www.tunemymusic.com" target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:underline">TuneMyMusic.com</a> → import to Spotify in 30 seconds</span>
                 </li>
                 <li className="flex gap-2">
                   <span className="text-purple-400">✓</span>
