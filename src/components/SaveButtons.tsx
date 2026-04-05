@@ -34,10 +34,9 @@ export default function SaveButtons({
   const [youtubeUrl, setYoutubeUrl] = useState<string | null>(null);
   const [youtubeStats, setYoutubeStats] = useState<{ added: number; skipped: number } | null>(null);
   const [copied, setCopied] = useState(false);
-  const [tracksCopied, setTracksCopied] = useState(false);
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const [showSpotifyModal, setShowSpotifyModal] = useState(false);
-  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [showImportHint, setShowImportHint] = useState(false);
 
   const playlistName = `${festivalName} ${festivalYear} — Lineup Playlist`;
 
@@ -64,7 +63,6 @@ export default function SaveButtons({
         setSpotifyState("saved");
         setSpotifyUrl(data.playlistUrl);
       } else {
-        // Check if it's a dev mode / unauthorized error
         const errMsg = (data.error || "").toLowerCase();
         if (
           errMsg.includes("forbidden") ||
@@ -120,41 +118,18 @@ export default function SaveButtons({
     }
   };
 
-  const copyTracksToClipboard = () => {
+  const importToSpotify = () => {
+    // Copy tracks to clipboard in "Artist - Track" format (TuneMyMusic reads this)
     const trackList = tracks
-      .map((t, i) => `${i + 1}. ${t.artist} — ${t.name}`)
+      .map((t) => `${t.artist} - ${t.name}`)
       .join("\n");
-    const header = `${playlistName}\n${"─".repeat(40)}\n`;
-    navigator.clipboard.writeText(header + trackList);
-    setTracksCopied(true);
-    setTimeout(() => setTracksCopied(false), 2500);
-  };
+    navigator.clipboard.writeText(trackList);
 
-  const exportAsCSV = () => {
-    const header = "Track Name,Artist,Album,Spotify URI";
-    const rows = tracks.map(
-      (t) =>
-        `"${t.name.replace(/"/g, '""')}","${t.artist.replace(/"/g, '""')}","${(t.albumName || "").replace(/"/g, '""')}","${t.spotifyUri || ""}"`
-    );
-    const csv = [header, ...rows].join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${festivalName.replace(/[^a-zA-Z0-9]/g, "_")}_${festivalYear}_playlist.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+    // Open TuneMyMusic in new tab
+    window.open("https://www.tunemymusic.com/transfer", "_blank");
 
-  const exportSpotifyURIs = () => {
-    const uris = tracks.filter((t) => t.spotifyUri).map((t) => t.spotifyUri).join("\n");
-    const blob = new Blob([uris], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${festivalName.replace(/[^a-zA-Z0-9]/g, "_")}_${festivalYear}_spotify_uris.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+    // Show the inline hint
+    setShowImportHint(true);
   };
 
   const shareLink = () => {
@@ -238,57 +213,39 @@ export default function SaveButtons({
           </button>
         </div>
 
-        {/* Copy tracks as text — always visible as a handy fallback */}
+        {/* One-click Spotify import via TuneMyMusic */}
         <button
-          onClick={copyTracksToClipboard}
-          className="w-full py-2.5 bg-white/5 hover:bg-white/10 border border-white/10
-                     text-white/70 text-sm rounded-xl transition-colors flex items-center justify-center gap-2"
+          onClick={importToSpotify}
+          className="w-full py-2.5 bg-[#1DB954]/10 hover:bg-[#1DB954]/20 border border-[#1DB954]/30
+                     text-[#1DB954] text-sm rounded-xl transition-colors flex items-center justify-center gap-2"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
           </svg>
-          {tracksCopied ? "Copied all tracks!" : `Copy ${tracks.length} tracks to clipboard`}
+          Import to Spotify via TuneMyMusic (free)
         </button>
 
-        {/* Export for Spotify (manual import) */}
-        <div className="relative">
-          <button
-            onClick={() => setShowExportMenu(!showExportMenu)}
-            className="w-full py-2.5 bg-white/5 hover:bg-white/10 border border-white/10
-                       text-white/70 text-sm rounded-xl transition-colors flex items-center justify-center gap-2"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            Export playlist file (import to Spotify yourself)
-          </button>
-          {showExportMenu && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-gray-800 border border-white/10 rounded-xl overflow-hidden shadow-xl z-10">
-              <button
-                onClick={() => { exportAsCSV(); setShowExportMenu(false); }}
-                className="w-full px-4 py-3 text-left text-sm text-white/70 hover:bg-white/10 transition-colors flex items-center gap-3"
-              >
-                <span className="text-green-400 text-lg">📄</span>
-                <div>
-                  <p className="text-white/90 font-medium">Download CSV</p>
-                  <p className="text-white/40 text-xs">Upload to TuneMyMusic.com or Soundiiz.com to import into Spotify</p>
-                </div>
-              </button>
-              <button
-                onClick={() => { exportSpotifyURIs(); setShowExportMenu(false); }}
-                className="w-full px-4 py-3 text-left text-sm text-white/70 hover:bg-white/10 transition-colors border-t border-white/5 flex items-center gap-3"
-              >
-                <span className="text-purple-400 text-lg">🔗</span>
-                <div>
-                  <p className="text-white/90 font-medium">Download Spotify URIs</p>
-                  <p className="text-white/40 text-xs">Text file with spotify:track:... URIs — paste into some import tools</p>
-                </div>
-              </button>
+        {/* Inline hint after clicking import */}
+        {showImportHint && (
+          <div className="bg-[#1DB954]/5 border border-[#1DB954]/20 rounded-xl p-4 space-y-2 animate-in fade-in">
+            <div className="flex items-center gap-2 text-[#1DB954] text-sm font-medium">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              {tracks.length} tracks copied! TuneMyMusic should be open in a new tab.
             </div>
-          )}
-        </div>
+            <div className="text-white/50 text-xs space-y-1 pl-6">
+              <p>On TuneMyMusic: pick <strong className="text-white/70">&quot;Any text&quot;</strong> as source → <strong className="text-white/70">paste</strong> (Ctrl+V) → choose <strong className="text-white/70">Spotify</strong> → <strong className="text-white/70">Start Moving</strong></p>
+            </div>
+            <button
+              onClick={() => setShowImportHint(false)}
+              className="text-white/30 hover:text-white/50 text-xs pl-6 transition-colors"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
 
         {/* Error detail */}
         {errorDetail && (
@@ -339,7 +296,7 @@ export default function SaveButtons({
         </button>
       </div>
 
-      {/* Spotify Beta Modal */}
+      {/* Spotify Beta Modal (shown on 403 error) */}
       {showSpotifyModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
           <div className="bg-gray-900 border border-white/10 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
@@ -347,49 +304,49 @@ export default function SaveButtons({
               <div className="text-4xl mb-3">🎵🔒</div>
               <h3 className="text-xl font-bold text-white">Spotify is playing hard to get</h3>
               <p className="text-white/60 text-sm mt-2">
-                Spotify requires apps to be a registered company with 250K+ users before they can let everyone save playlists.
-                We&apos;re a small indie project, not a Fortune 500 company... yet.
+                Spotify requires apps to have 250K+ users before they unlock full access.
+                We&apos;re not there yet — but you can still get your playlist into Spotify!
               </p>
             </div>
 
-            <div className="bg-white/5 rounded-xl p-4 space-y-2">
-              <p className="text-white/80 text-sm font-medium">But here&apos;s what you can do:</p>
-              <ul className="text-white/60 text-sm space-y-2">
-                <li className="flex gap-2">
-                  <span className="text-green-400">✓</span>
-                  <span><strong className="text-white/80">Save to YouTube</strong> — works for everyone, no limits!</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-orange-400">✓</span>
-                  <span><strong className="text-white/80">Export &amp; import yourself</strong> — download CSV, upload to <a href="https://www.tunemymusic.com" target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:underline">TuneMyMusic.com</a> → import to Spotify in 30 seconds</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-purple-400">✓</span>
-                  <span><strong className="text-white/80">Want direct Spotify access?</strong> DM me your Spotify email on{" "}
-                    <a href="https://www.linkedin.com/in/therealkranup/" target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:underline">LinkedIn</a>
-                    {" "}and I&apos;ll add you (limited to 25 beta testers)
-                  </span>
-                </li>
-              </ul>
-            </div>
-
-            <div className="flex gap-3">
+            <div className="flex flex-col gap-2">
               <button
                 onClick={() => {
                   setShowSpotifyModal(false);
-                  copyTracksToClipboard();
+                  importToSpotify();
                 }}
-                className="flex-1 py-2.5 bg-[#1DB954] hover:bg-[#1ed760] text-white font-semibold rounded-xl transition-colors text-sm"
+                className="w-full py-3 bg-[#1DB954] hover:bg-[#1ed760] text-white font-semibold rounded-xl transition-colors text-sm flex items-center justify-center gap-2"
               >
-                Copy tracks instead
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                Import to Spotify anyway (free, 30 sec)
+              </button>
+              <button
+                onClick={() => {
+                  setShowSpotifyModal(false);
+                  saveToYouTube();
+                }}
+                className="w-full py-3 bg-[#FF0000]/80 hover:bg-[#FF0000] text-white font-semibold rounded-xl transition-colors text-sm flex items-center justify-center gap-2"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                </svg>
+                Save to YouTube instead (no limits)
               </button>
               <button
                 onClick={() => setShowSpotifyModal(false)}
-                className="flex-1 py-2.5 bg-white/10 hover:bg-white/15 text-white/70 rounded-xl transition-colors text-sm"
+                className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-white/50 rounded-xl transition-colors text-sm"
               >
                 Close
               </button>
             </div>
+
+            <p className="text-white/30 text-xs text-center">
+              Want direct Spotify save? DM your Spotify email on{" "}
+              <a href="https://www.linkedin.com/in/therealkranup/" target="_blank" rel="noopener noreferrer" className="text-[#1DB954]/60 hover:underline">LinkedIn</a>
+              {" "}— limited to 25 beta spots
+            </p>
           </div>
         </div>
       )}
