@@ -118,13 +118,9 @@ export default function SaveButtons({
     }
   };
 
-  const importVia = (destination: "spotify" | "youtube") => {
-    // Copy tracks to clipboard in "Artist - Track" format (TuneMyMusic reads this)
-    const trackList = tracks
-      .map((t) => `${t.artist} - ${t.name}`)
-      .join("\n");
-    navigator.clipboard.writeText(trackList);
+  const [hintCopied, setHintCopied] = useState(false);
 
+  const importVia = (destination: "spotify" | "youtube") => {
     // Open TuneMyMusic direct link for the chosen destination
     const urls = {
       spotify: "https://www.tunemymusic.com/transfer/text-file-to-spotify",
@@ -132,8 +128,18 @@ export default function SaveButtons({
     };
     window.open(urls[destination], "_blank");
 
-    // Show the inline hint
+    // Show the inline hint with a copy button
+    setHintCopied(false);
     setShowImportHint(true);
+  };
+
+  const copyTracksForImport = () => {
+    const trackList = tracks
+      .map((t) => `${t.artist} - ${t.name}`)
+      .join("\n");
+    navigator.clipboard.writeText(trackList);
+    setHintCopied(true);
+    setTimeout(() => setHintCopied(false), 3000);
   };
 
   const shareLink = () => {
@@ -246,20 +252,42 @@ export default function SaveButtons({
 
         {/* Inline hint after clicking import */}
         {showImportHint && (
-          <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-2">
-            <div className="flex items-center gap-2 text-[#1DB954] text-sm font-medium">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              {tracks.length} tracks copied! TuneMyMusic is open in a new tab.
+          <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
+            <div className="flex items-center gap-2 text-white/80 text-sm font-medium">
+              TuneMyMusic is open in a new tab. Here&apos;s what to do:
             </div>
-            <div className="text-white/50 text-xs space-y-1.5 pl-6">
-              <p><strong className="text-white/70">1.</strong> Upload or paste your tracks (<strong className="text-white/70">Ctrl+V</strong> / <strong className="text-white/70">Cmd+V</strong>)</p>
+            <div className="text-white/50 text-xs space-y-1.5 pl-2">
+              <p><strong className="text-white/70">1.</strong> Copy your tracks below, then paste them on TuneMyMusic</p>
               <p><strong className="text-white/70">2.</strong> Click <strong className="text-white/70">&quot;Start Moving My Music&quot;</strong> — done!</p>
             </div>
             <button
+              onClick={copyTracksForImport}
+              className={`w-full py-2 text-sm rounded-lg transition-colors flex items-center justify-center gap-2 ${
+                hintCopied
+                  ? "bg-[#1DB954]/20 text-[#1DB954] border border-[#1DB954]/30"
+                  : "bg-white/10 hover:bg-white/15 text-white/70 border border-white/10"
+              }`}
+            >
+              {hintCopied ? (
+                <>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  {tracks.length} tracks copied — now paste on TuneMyMusic!
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                  </svg>
+                  Copy {tracks.length} tracks to clipboard
+                </>
+              )}
+            </button>
+            <button
               onClick={() => setShowImportHint(false)}
-              className="text-white/30 hover:text-white/50 text-xs pl-6 transition-colors"
+              className="text-white/30 hover:text-white/50 text-xs transition-colors w-full text-center"
             >
               Dismiss
             </button>
