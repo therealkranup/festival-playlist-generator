@@ -3,14 +3,15 @@ import "./globals.css";
 import Providers from "@/components/Providers";
 
 export const metadata: Metadata = {
-  title: "Festival Playlist Generator",
+  title: "FestifyGen — Festival Playlist Generator",
   description:
-    "Turn any music festival lineup into a Spotify & YouTube playlist in seconds.",
+    "Turn any music festival lineup into a Spotify & YouTube playlist in seconds. Search 36+ European festivals with instant results.",
   openGraph: {
-    title: "Festival Playlist Generator",
+    title: "FestifyGen — Festival Playlist Generator",
     description:
-      "Turn any music festival lineup into a Spotify & YouTube playlist in seconds.",
+      "Turn any music festival lineup into a Spotify & YouTube playlist in seconds. Search 36+ European festivals with instant results.",
     type: "website",
+    url: "https://festifygen.netlify.app",
   },
 };
 

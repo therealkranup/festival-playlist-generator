@@ -351,8 +351,20 @@ export default function Home() {
       </div>
 
       {/* Footer */}
-      <footer className="text-center text-white/20 text-xs py-6">
-        Built with Next.js, Spotify API & YouTube API
+      <footer className="text-center text-white/20 text-xs py-6 space-y-2">
+        <div className="flex items-center justify-center gap-4">
+          <span>Powered by</span>
+          <a href="https://developer.spotify.com" target="_blank" rel="noopener noreferrer" className="hover:text-white/40 transition-colors">
+            Spotify
+          </a>
+          <span>&</span>
+          <a href="https://developers.google.com/youtube" target="_blank" rel="noopener noreferrer" className="hover:text-white/40 transition-colors">
+            YouTube
+          </a>
+        </div>
+        <div>
+          <a href="/privacy" className="hover:text-white/40 transition-colors">Privacy Policy</a>
+        </div>
       </footer>
     </main>
   );
